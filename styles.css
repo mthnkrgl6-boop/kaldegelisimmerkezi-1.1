@@ -544,6 +544,19 @@ body {
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
 }
 
+.admin-card h4 {
+    margin: 20px 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.admin-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+    border-radius: 999px;
+}
+
 .admin-card form {
     display: grid;
     gap: 12px;

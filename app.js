@@ -224,6 +224,16 @@ const state = {
     activeModuleId: null,
     isAdmin: false,
     adminLoginError: '',
+    adminSelections: {
+        courseEdit: '',
+        moduleCourse: '',
+        moduleEdit: '',
+        quizCourse: '',
+        quizQuestion: '',
+        personal: '',
+        announcement: '',
+        faq: ''
+    },
     youtubePlayer: null,
     youtubeTracker: null,
     youtubeAPIReady: typeof YT !== 'undefined' && !!YT.Player
@@ -947,6 +957,53 @@ function renderAnnouncements() {
     announcementView.appendChild(list);
 }
 
+function normalizeAdminSelections() {
+    const selections = state.adminSelections;
+    if (!selections) return;
+
+    const courses = state.courses;
+    const firstCourse = courses[0];
+    if (!courses.find(course => course.id === selections.courseEdit)) {
+        selections.courseEdit = firstCourse ? firstCourse.id : '';
+    }
+
+    const coursesWithModules = courses.filter(course => course.modules.length);
+    const moduleCourse = coursesWithModules.find(course => course.id === selections.moduleCourse) || coursesWithModules[0];
+    selections.moduleCourse = moduleCourse ? moduleCourse.id : '';
+    if (moduleCourse) {
+        const module = moduleCourse.modules.find(item => item.id === selections.moduleEdit) || moduleCourse.modules[0];
+        selections.moduleEdit = module ? module.id : '';
+    } else {
+        selections.moduleEdit = '';
+    }
+
+    const quizCourses = courses.filter(course => course.quiz && course.quiz.questions.length);
+    const quizCourse = quizCourses.find(course => course.id === selections.quizCourse) || quizCourses[0];
+    selections.quizCourse = quizCourse ? quizCourse.id : '';
+    if (quizCourse && quizCourse.quiz.questions.length) {
+        const questionIndex = Number(selections.quizQuestion);
+        selections.quizQuestion = Number.isInteger(questionIndex) && quizCourse.quiz.questions[questionIndex]
+            ? String(questionIndex)
+            : '0';
+    } else {
+        selections.quizQuestion = '';
+    }
+
+    if (!state.personalDevelopment.find(item => item.id === selections.personal)) {
+        selections.personal = state.personalDevelopment[0] ? state.personalDevelopment[0].id : '';
+    }
+
+    const announcementIndex = Number(selections.announcement);
+    if (!Number.isInteger(announcementIndex) || !state.announcements[announcementIndex]) {
+        selections.announcement = state.announcements.length ? '0' : '';
+    }
+
+    const faqIndex = Number(selections.faq);
+    if (!Number.isInteger(faqIndex) || !state.faq[faqIndex]) {
+        selections.faq = state.faq.length ? '0' : '';
+    }
+}
+
 function renderAdminPanel() {
     adminView.innerHTML = '';
 
@@ -985,6 +1042,8 @@ function renderAdminPanel() {
         return;
     }
 
+    normalizeAdminSelections();
+
     const adminPanel = document.createElement('div');
     adminPanel.className = 'admin-panel';
 
@@ -1001,6 +1060,7 @@ function renderAdminPanel() {
 function createCourseManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { courseEdit } = state.adminSelections;
     card.innerHTML = `
         <h3>Kurs Yönetimi</h3>
         <form id="courseForm">
@@ -1011,6 +1071,18 @@ function createCourseManager() {
         <div class="inline-list">
             ${state.courses.map(course => `<button data-course="${course.id}"><span>${course.title}</span> <i>Sil</i></button>`).join('')}
         </div>
+        ${state.courses.length ? `
+            <div class="admin-divider"></div>
+            <h4>Kurs Düzenle</h4>
+            <form id="courseEditForm">
+                <select name="course" required>
+                    ${state.courses.map(course => `<option value="${course.id}" ${course.id === courseEdit ? 'selected' : ''}>${course.title}</option>`).join('')}
+                </select>
+                <input type="text" name="title" placeholder="Kurs Başlığı" required>
+                <textarea name="description" placeholder="Kurs açıklaması" required></textarea>
+                <button type="submit">Kursu Güncelle</button>
+            </form>
+        ` : ''}
     `;
 
     const form = card.querySelector('#courseForm');
@@ -1051,12 +1123,49 @@ function createCourseManager() {
         });
     });
 
+    const editForm = card.querySelector('#courseEditForm');
+    if (editForm) {
+        const select = editForm.querySelector('select[name="course"]');
+        const titleInput = editForm.querySelector('input[name="title"]');
+        const descriptionInput = editForm.querySelector('textarea[name="description"]');
+        const selectedCourse = state.courses.find(course => course.id === select.value);
+        if (selectedCourse) {
+            titleInput.value = selectedCourse.title;
+            descriptionInput.value = selectedCourse.description;
+        }
+
+        select.addEventListener('change', () => {
+            state.adminSelections.courseEdit = select.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const targetCourse = state.courses.find(course => course.id === select.value);
+            if (!targetCourse) return;
+            targetCourse.title = titleInput.value;
+            targetCourse.description = descriptionInput.value;
+            if (targetCourse.quiz) {
+                targetCourse.quiz.title = `${titleInput.value} Quiz`;
+            }
+            renderAdminPanel();
+            renderOnlineTrainings();
+            renderQuizzes();
+            showToast('Kurs bilgileri güncellendi.');
+        });
+    }
+
     return card;
 }
 
 function createModuleManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { moduleCourse, moduleEdit } = state.adminSelections;
+    const editableCourses = state.courses.filter(course => course.modules.length);
+    const selectedCourse = editableCourses.find(course => course.id === moduleCourse) || editableCourses[0] || null;
+    const moduleOptions = selectedCourse ? selectedCourse.modules : [];
+    const hasModules = editableCourses.length > 0;
     card.innerHTML = `
         <h3>Modül Yönetimi</h3>
         <form id="moduleForm">
@@ -1074,6 +1183,27 @@ function createModuleManager() {
             <textarea name="summary" placeholder="Modül özeti" required></textarea>
             <button type="submit">Modül Ekle</button>
         </form>
+        <div class="admin-divider"></div>
+        <h4>Modül Düzenle</h4>
+        ${hasModules ? `
+            <form id="moduleEditForm">
+                <select name="course" required>
+                    ${editableCourses.map(course => `<option value="${course.id}" ${selectedCourse && selectedCourse.id === course.id ? 'selected' : ''}>${course.title}</option>`).join('')}
+                </select>
+                <select name="module" required>
+                    ${moduleOptions.map(module => `<option value="${module.id}" ${module.id === moduleEdit ? 'selected' : ''}>${module.title}</option>`).join('')}
+                </select>
+                <input type="text" name="title" placeholder="Modül Başlığı" required>
+                <input type="text" name="duration" placeholder="Süre örn. 08:30" required>
+                <select name="type" required>
+                    <option value="video">Video (MP4)</option>
+                    <option value="youtube">YouTube</option>
+                </select>
+                <input type="url" name="source" placeholder="Video URL veya YouTube bağlantısı" required>
+                <textarea name="summary" placeholder="Modül özeti" required></textarea>
+                <button type="submit">Modülü Güncelle</button>
+            </form>
+        ` : '<p class="section-description">Düzenlenecek modül bulunmuyor.</p>'}
     `;
 
     const form = card.querySelector('#moduleForm');
@@ -1113,12 +1243,75 @@ function createModuleManager() {
         showToast('Modül eklendi.');
     });
 
+    const editForm = card.querySelector('#moduleEditForm');
+    if (editForm) {
+        const courseSelect = editForm.querySelector('select[name="course"]');
+        const moduleSelect = editForm.querySelector('select[name="module"]');
+        const titleInput = editForm.querySelector('input[name="title"]');
+        const durationInput = editForm.querySelector('input[name="duration"]');
+        const typeSelect = editForm.querySelector('select[name="type"]');
+        const sourceInput = editForm.querySelector('input[name="source"]');
+        const summaryInput = editForm.querySelector('textarea[name="summary"]');
+
+        const selectedCourse = state.courses.find(course => course.id === courseSelect.value);
+        const selectedModule = selectedCourse ? selectedCourse.modules.find(module => module.id === moduleSelect.value) : null;
+        if (selectedModule) {
+            titleInput.value = selectedModule.title;
+            durationInput.value = selectedModule.duration;
+            typeSelect.value = selectedModule.type;
+            summaryInput.value = selectedModule.summary;
+            sourceInput.value = selectedModule.type === 'youtube'
+                ? `https://www.youtube.com/watch?v=${selectedModule.youtubeId}`
+                : selectedModule.source || '';
+        }
+
+        courseSelect.addEventListener('change', () => {
+            state.adminSelections.moduleCourse = courseSelect.value;
+            state.adminSelections.moduleEdit = '';
+            renderAdminPanel();
+        });
+
+        moduleSelect.addEventListener('change', () => {
+            state.adminSelections.moduleEdit = moduleSelect.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const course = state.courses.find(item => item.id === courseSelect.value);
+            if (!course) return;
+            const module = course.modules.find(item => item.id === moduleSelect.value);
+            if (!module) return;
+            module.title = titleInput.value;
+            module.duration = durationInput.value;
+            module.type = typeSelect.value;
+            module.summary = summaryInput.value;
+            if (module.type === 'youtube') {
+                const match = (sourceInput.value || '').match(/(?:v=|\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+                module.youtubeId = match ? match[1] : (sourceInput.value || '').slice(-11);
+                delete module.source;
+            } else {
+                module.source = sourceInput.value;
+                delete module.youtubeId;
+            }
+            renderAdminPanel();
+            renderOnlineTrainings();
+            showToast('Modül güncellendi.');
+        });
+    }
+
     return card;
 }
 
 function createQuizManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { quizCourse, quizQuestion } = state.adminSelections;
+    const quizCourses = state.courses.filter(course => course.quiz && course.quiz.questions.length);
+    const selectedCourse = quizCourses.find(course => course.id === quizCourse) || quizCourses[0] || null;
+    const questions = selectedCourse ? selectedCourse.quiz.questions : [];
+    const selectedQuestionIndex = questions[Number(quizQuestion)] ? Number(quizQuestion) : 0;
+    const hasQuestions = quizCourses.length > 0;
     card.innerHTML = `
         <h3>Quiz Yönetimi</h3>
         <form id="quizForm">
@@ -1137,6 +1330,28 @@ function createQuizManager() {
             </select>
             <button type="submit">Soru Ekle</button>
         </form>
+        <div class="admin-divider"></div>
+        <h4>Quiz Düzenle</h4>
+        ${hasQuestions ? `
+            <form id="quizEditForm">
+                <select name="course" required>
+                    ${quizCourses.map(course => `<option value="${course.id}" ${selectedCourse && selectedCourse.id === course.id ? 'selected' : ''}>${course.title}</option>`).join('')}
+                </select>
+                <select name="question" required>
+                    ${questions.map((question, index) => `<option value="${index}" ${index === selectedQuestionIndex ? 'selected' : ''}>${index + 1}. Soru</option>`).join('')}
+                </select>
+                <input type="text" name="questionText" placeholder="Soru metni" required>
+                <input type="text" name="option1" placeholder="1. Şık" required>
+                <input type="text" name="option2" placeholder="2. Şık" required>
+                <input type="text" name="option3" placeholder="3. Şık" required>
+                <select name="answer" required>
+                    <option value="0">1. Şık Doğru</option>
+                    <option value="1">2. Şık Doğru</option>
+                    <option value="2">3. Şık Doğru</option>
+                </select>
+                <button type="submit">Soruyu Güncelle</button>
+            </form>
+        ` : '<p class="section-description">Düzenlenecek quiz sorusu bulunmuyor.</p>'}
     `;
 
     const form = card.querySelector('#quizForm');
@@ -1156,12 +1371,60 @@ function createQuizManager() {
         showToast('Quiz sorusu eklendi.');
     });
 
+    const editForm = card.querySelector('#quizEditForm');
+    if (editForm) {
+        const courseSelect = editForm.querySelector('select[name="course"]');
+        const questionSelect = editForm.querySelector('select[name="question"]');
+        const questionInput = editForm.querySelector('input[name="questionText"]');
+        const option1Input = editForm.querySelector('input[name="option1"]');
+        const option2Input = editForm.querySelector('input[name="option2"]');
+        const option3Input = editForm.querySelector('input[name="option3"]');
+        const answerSelect = editForm.querySelector('select[name="answer"]');
+
+        const selectedCourse = state.courses.find(item => item.id === courseSelect.value);
+        const selectedQuestion = selectedCourse ? selectedCourse.quiz.questions[Number(questionSelect.value)] : null;
+        if (selectedQuestion) {
+            questionInput.value = selectedQuestion.text;
+            option1Input.value = selectedQuestion.options[0] || '';
+            option2Input.value = selectedQuestion.options[1] || '';
+            option3Input.value = selectedQuestion.options[2] || '';
+            answerSelect.value = String(selectedQuestion.answer ?? 0);
+        }
+
+        courseSelect.addEventListener('change', () => {
+            state.adminSelections.quizCourse = courseSelect.value;
+            state.adminSelections.quizQuestion = '0';
+            renderAdminPanel();
+        });
+
+        questionSelect.addEventListener('change', () => {
+            state.adminSelections.quizQuestion = questionSelect.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const course = state.courses.find(item => item.id === courseSelect.value);
+            if (!course) return;
+            const index = Number(questionSelect.value);
+            const question = course.quiz.questions[index];
+            if (!question) return;
+            question.text = questionInput.value;
+            question.options = [option1Input.value, option2Input.value, option3Input.value];
+            question.answer = Number(answerSelect.value);
+            renderAdminPanel();
+            renderQuizzes();
+            showToast('Quiz sorusu güncellendi.');
+        });
+    }
+
     return card;
 }
 
 function createPersonalManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { personal } = state.adminSelections;
     card.innerHTML = `
         <h3>Kişisel Gelişim İçerikleri</h3>
         <form id="personalForm">
@@ -1173,6 +1436,19 @@ function createPersonalManager() {
         <div class="inline-list">
             ${state.personalDevelopment.map(item => `<button data-id="${item.id}"><span>${item.title}</span><i>Sil</i></button>`).join('')}
         </div>
+        ${state.personalDevelopment.length ? `
+            <div class="admin-divider"></div>
+            <h4>İçerik Düzenle</h4>
+            <form id="personalEditForm">
+                <select name="content" required>
+                    ${state.personalDevelopment.map(item => `<option value="${item.id}" ${item.id === personal ? 'selected' : ''}>${item.title}</option>`).join('')}
+                </select>
+                <input type="text" name="title" placeholder="Başlık" required>
+                <input type="text" name="icon" placeholder="Emoji (örn. 🔥)" maxlength="2" required>
+                <textarea name="body" placeholder="İçerik" required></textarea>
+                <button type="submit">İçeriği Güncelle</button>
+            </form>
+        ` : ''}
     `;
 
     const form = card.querySelector('#personalForm');
@@ -1203,12 +1479,44 @@ function createPersonalManager() {
         });
     });
 
+    const editForm = card.querySelector('#personalEditForm');
+    if (editForm) {
+        const select = editForm.querySelector('select[name="content"]');
+        const titleInput = editForm.querySelector('input[name="title"]');
+        const iconInput = editForm.querySelector('input[name="icon"]');
+        const bodyInput = editForm.querySelector('textarea[name="body"]');
+        const selectedItem = state.personalDevelopment.find(item => item.id === select.value);
+        if (selectedItem) {
+            titleInput.value = selectedItem.title;
+            iconInput.value = selectedItem.icon;
+            bodyInput.value = selectedItem.body;
+        }
+
+        select.addEventListener('change', () => {
+            state.adminSelections.personal = select.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const target = state.personalDevelopment.find(item => item.id === select.value);
+            if (!target) return;
+            target.title = titleInput.value;
+            target.icon = iconInput.value || '📘';
+            target.body = bodyInput.value;
+            renderAdminPanel();
+            renderPersonalGrowth();
+            showToast('İçerik güncellendi.');
+        });
+    }
+
     return card;
 }
 
 function createAnnouncementManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { announcement } = state.adminSelections;
     card.innerHTML = `
         <h3>Duyuru Yönetimi</h3>
         <form id="announcementForm">
@@ -1220,6 +1528,19 @@ function createAnnouncementManager() {
         <div class="inline-list">
             ${state.announcements.map((item, index) => `<button data-index="${index}"><span>${item.title}</span><i>Sil</i></button>`).join('')}
         </div>
+        ${state.announcements.length ? `
+            <div class="admin-divider"></div>
+            <h4>Duyuru Düzenle</h4>
+            <form id="announcementEditForm">
+                <select name="announcement" required>
+                    ${state.announcements.map((item, index) => `<option value="${index}" ${String(index) === announcement ? 'selected' : ''}>${item.title}</option>`).join('')}
+                </select>
+                <input type="text" name="title" placeholder="Duyuru başlığı" required>
+                <input type="text" name="icon" placeholder="Emoji (örn. 📣)" maxlength="2" required>
+                <textarea name="body" placeholder="Duyuru metni" required></textarea>
+                <button type="submit">Duyuruyu Güncelle</button>
+            </form>
+        ` : ''}
     `;
 
     const form = card.querySelector('#announcementForm');
@@ -1247,12 +1568,46 @@ function createAnnouncementManager() {
         });
     });
 
+    const editForm = card.querySelector('#announcementEditForm');
+    if (editForm) {
+        const select = editForm.querySelector('select[name="announcement"]');
+        const titleInput = editForm.querySelector('input[name="title"]');
+        const iconInput = editForm.querySelector('input[name="icon"]');
+        const bodyInput = editForm.querySelector('textarea[name="body"]');
+        const index = Number(select.value);
+        const selected = Number.isInteger(index) ? state.announcements[index] : null;
+        if (selected) {
+            titleInput.value = selected.title;
+            iconInput.value = selected.icon;
+            bodyInput.value = selected.body;
+        }
+
+        select.addEventListener('change', () => {
+            state.adminSelections.announcement = select.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const idx = Number(select.value);
+            if (!Number.isInteger(idx) || !state.announcements[idx]) return;
+            const announcementItem = state.announcements[idx];
+            announcementItem.title = titleInput.value;
+            announcementItem.icon = iconInput.value || '📣';
+            announcementItem.body = bodyInput.value;
+            renderAdminPanel();
+            renderAnnouncements();
+            showToast('Duyuru güncellendi.');
+        });
+    }
+
     return card;
 }
 
 function createFaqManager() {
     const card = document.createElement('div');
     card.className = 'admin-card';
+    const { faq } = state.adminSelections;
     card.innerHTML = `
         <h3>SSS Yönetimi</h3>
         <form id="faqForm">
@@ -1263,6 +1618,18 @@ function createFaqManager() {
         <div class="inline-list">
             ${state.faq.map((item, index) => `<button data-index="${index}"><span>${item.question}</span><i>Sil</i></button>`).join('')}
         </div>
+        ${state.faq.length ? `
+            <div class="admin-divider"></div>
+            <h4>SSS Düzenle</h4>
+            <form id="faqEditForm">
+                <select name="faq" required>
+                    ${state.faq.map((item, index) => `<option value="${index}" ${String(index) === faq ? 'selected' : ''}>${item.question}</option>`).join('')}
+                </select>
+                <input type="text" name="question" placeholder="Soru" required>
+                <textarea name="answer" placeholder="Cevap" required></textarea>
+                <button type="submit">SSS Güncelle</button>
+            </form>
+        ` : ''}
     `;
 
     const form = card.querySelector('#faqForm');
@@ -1288,6 +1655,36 @@ function createFaqManager() {
             showToast('SSS maddesi silindi.');
         });
     });
+
+    const editForm = card.querySelector('#faqEditForm');
+    if (editForm) {
+        const select = editForm.querySelector('select[name="faq"]');
+        const questionInput = editForm.querySelector('input[name="question"]');
+        const answerInput = editForm.querySelector('textarea[name="answer"]');
+        const index = Number(select.value);
+        const selected = Number.isInteger(index) ? state.faq[index] : null;
+        if (selected) {
+            questionInput.value = selected.question;
+            answerInput.value = selected.answer;
+        }
+
+        select.addEventListener('change', () => {
+            state.adminSelections.faq = select.value;
+            renderAdminPanel();
+        });
+
+        editForm.addEventListener('submit', event => {
+            event.preventDefault();
+            const idx = Number(select.value);
+            if (!Number.isInteger(idx) || !state.faq[idx]) return;
+            const item = state.faq[idx];
+            item.question = questionInput.value;
+            item.answer = answerInput.value;
+            renderAdminPanel();
+            renderFaq();
+            showToast('SSS maddesi güncellendi.');
+        });
+    }
 
     return card;
 }
