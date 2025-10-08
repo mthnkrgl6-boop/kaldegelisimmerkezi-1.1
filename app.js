@@ -245,6 +245,66 @@ const toastContainer = document.querySelector('.toast-container');
 const quizModal = document.getElementById('quizModal');
 const quizModalContent = document.getElementById('quizModalContent');
 const closeQuizModalButton = document.getElementById('closeQuizModal');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+function isMobileView() {
+    return window.innerWidth <= 960;
+}
+
+function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    if (sidebarToggle) {
+        sidebarToggle.classList.add('is-open');
+        sidebarToggle.setAttribute('aria-expanded', 'true');
+    }
+    if (sidebarBackdrop) {
+        sidebarBackdrop.classList.add('visible');
+    }
+}
+
+function closeSidebar(focusToggle = false) {
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    if (sidebarToggle) {
+        sidebarToggle.classList.remove('is-open');
+        sidebarToggle.setAttribute('aria-expanded', 'false');
+        if (focusToggle) {
+            sidebarToggle.focus();
+        }
+    }
+    if (sidebarBackdrop) {
+        sidebarBackdrop.classList.remove('visible');
+    }
+}
+
+if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+        if (sidebar?.classList.contains('open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+}
+
+if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', () => closeSidebar());
+}
+
+window.addEventListener('resize', () => {
+    if (!isMobileView()) {
+        closeSidebar();
+    }
+});
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && sidebar?.classList.contains('open')) {
+        closeSidebar(true);
+    }
+});
 
 const courseView = document.getElementById('online-trainings');
 const quizView = document.getElementById('quizzes');
@@ -296,6 +356,9 @@ navButtons.forEach(button => {
         }
         setActiveView(button.dataset.target);
         renderView(button.dataset.target);
+        if (isMobileView()) {
+            closeSidebar();
+        }
     });
 });
 

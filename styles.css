@@ -143,6 +143,87 @@ body {
     padding: 24px 32px;
 }
 
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(79, 70, 229, 0.12);
+    color: var(--primary-dark);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.menu-toggle:hover {
+    background: rgba(79, 70, 229, 0.18);
+}
+
+.menu-toggle:active {
+    transform: scale(0.96);
+}
+
+.menu-toggle:focus-visible {
+    outline: 3px solid rgba(79, 70, 229, 0.35);
+    outline-offset: 2px;
+}
+
+.menu-icon {
+    display: grid;
+    gap: 5px;
+}
+
+.menu-icon span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 999px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menu-toggle.is-open .menu-icon span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.menu-toggle.is-open .menu-icon span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.is-open .menu-icon span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1100;
+}
+
+.sidebar-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (min-width: 961px) {
+    .sidebar-backdrop {
+        display: none;
+    }
+}
+
 .status-badges {
     display: flex;
     gap: 12px;
@@ -754,9 +835,23 @@ textarea {
         transform: translateX(0);
     }
 
+    .menu-toggle {
+        display: inline-flex;
+    }
+
     .top-bar {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .top-bar-left {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .status-badges {
+        flex-wrap: wrap;
+        gap: 8px;
     }
 }

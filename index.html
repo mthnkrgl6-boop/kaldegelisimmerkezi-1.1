@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="app-shell">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="brand">
                 <div class="brand-logo">Y</div>
                 <div class="brand-text">
@@ -45,12 +45,22 @@
                 <button id="openSupport">Destek Talebi Oluştur</button>
             </div>
         </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
         <div class="content-area">
             <header class="top-bar">
-                <div class="status-badges">
-                    <span class="badge badge-online">🟢 Online</span>
-                    <span class="badge badge-meeting">🧑‍💻 Online Toplantı</span>
-                    <span class="badge badge-training">🎓 Proje Stajı</span>
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="sidebarToggle" aria-label="Menüyü aç/kapat" aria-expanded="false" aria-controls="sidebar">
+                        <span class="menu-icon" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </button>
+                    <div class="status-badges">
+                        <span class="badge badge-online">🟢 Online</span>
+                        <span class="badge badge-meeting">🧑‍💻 Online Toplantı</span>
+                        <span class="badge badge-training">🎓 Proje Stajı</span>
+                    </div>
                 </div>
                 <div class="user-info">
                     <div class="user-meta">
