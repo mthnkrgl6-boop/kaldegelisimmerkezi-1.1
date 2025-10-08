@@ -957,8 +957,8 @@ function renderAdminPanel() {
             <h3>Yönetici Girişi</h3>
             <p class="section-description">İçerik ekleme, silme ve düzenleme işlemleri yalnızca yönetici hesapları ile yapılabilir.</p>
             <form id="adminLoginForm">
-                <input type="text" name="email" placeholder="E-posta" required>
-                <input type="password" name="password" placeholder="Şifre" required>
+                <input type="email" name="email" placeholder="E-posta" autocomplete="username" required>
+                <input type="password" name="password" placeholder="Şifre" autocomplete="current-password" required>
                 <button type="submit">Giriş Yap</button>
                 ${state.adminLoginError ? `<p class="section-description" style="color: var(--danger);">${state.adminLoginError}</p>` : ''}
             </form>
@@ -970,8 +970,8 @@ function renderAdminPanel() {
         form.addEventListener('submit', event => {
             event.preventDefault();
             const formData = new FormData(form);
-            const email = formData.get('email');
-            const password = formData.get('password');
+            const email = (formData.get('email') || '').toString().trim().toLowerCase();
+            const password = (formData.get('password') || '').toString().trim();
             if (email === 'mthnkrgl6@gmail.com' && password === '123456') {
                 state.isAdmin = true;
                 state.adminLoginError = '';
