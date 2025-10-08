@@ -972,7 +972,7 @@ function renderAdminPanel() {
             const formData = new FormData(form);
             const email = formData.get('email');
             const password = formData.get('password');
-            if (email === 'admin@yenilikle.com' && password === 'Egitim2024!') {
+            if (email === 'mthnkrgl6@gmail.com' && password === '123456') {
                 state.isAdmin = true;
                 state.adminLoginError = '';
                 showToast('Yönetici girişi başarılı.');
