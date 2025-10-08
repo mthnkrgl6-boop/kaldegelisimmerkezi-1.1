@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çalışan Gelişim Merkezi</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-logo">Y</div>
+                <div class="brand-text">
+                    <h1>Yenilikle</h1>
+                    <span>Gelişim Merkezi</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="online-trainings">
+                    <span>Online Eğitimler</span>
+                </button>
+                <button class="nav-item" data-target="quizzes">
+                    <span>Quizler ve Sertifikalar</span>
+                </button>
+                <button class="nav-item" data-target="personal-growth">
+                    <span>Kişisel Gelişim</span>
+                </button>
+                <button class="nav-item" data-target="faq">
+                    <span>Sıkça Sorulan Sorular</span>
+                </button>
+                <button class="nav-item" data-target="announcements">
+                    <span>Duyurular ve Etkinlikler</span>
+                </button>
+                <button class="nav-item" data-target="admin">
+                    <span>Yönetim Paneli</span>
+                </button>
+            </nav>
+            <div class="support-card">
+                <h3>Yardım mı lazım?</h3>
+                <p>İK ekibimiz tüm süreçlerde yanınızda.</p>
+                <button id="openSupport">Destek Talebi Oluştur</button>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+        <div class="content-area">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="menu-toggle" id="sidebarToggle" aria-label="Menüyü aç/kapat" aria-expanded="false" aria-controls="sidebar">
+                        <span class="menu-icon" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </button>
+                    <div class="status-badges">
+                        <span class="badge badge-online">🟢 Online</span>
+                        <span class="badge badge-meeting">🧑‍💻 Online Toplantı</span>
+                        <span class="badge badge-training">🎓 Proje Stajı</span>
+                    </div>
+                </div>
+                <div class="user-info">
+                    <div class="user-meta">
+                        <h2>Merhaba, Kenan!</h2>
+                        <p>Bugün öğrenmeye devam edelim.</p>
+                    </div>
+                    <div class="user-avatar">MK</div>
+                </div>
+            </header>
+            <main class="main-content">
+                <section id="online-trainings" class="view active-view"></section>
+                <section id="quizzes" class="view"></section>
+                <section id="personal-growth" class="view"></section>
+                <section id="faq" class="view"></section>
+                <section id="announcements" class="view"></section>
+                <section id="admin" class="view"></section>
+            </main>
+        </div>
+    </div>
+    <div class="modal" id="quizModal" aria-hidden="true">
+        <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="quizModalTitle">
+            <button class="modal-close" id="closeQuizModal" aria-label="Kapat">×</button>
+            <div class="modal-content" id="quizModalContent"></div>
+        </div>
+    </div>
+    <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="app.js" type="module"></script>
+</body>
+</html>
